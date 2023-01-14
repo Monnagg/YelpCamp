@@ -1,20 +1,43 @@
 const express = require("express");
-const app = new express();
-//2.引入path模块
+const mongoose  = require("mongoose");
 const path = require("path");
+const app = new express();
 
-//1.把ejs设为view engine
+//4.引入campg module
+const Campground = require('./models/campground');
+
+//1、连接到mongoodb里名为yelp-camp的数据库
+mongoose.connect('mongodb://localhost:27017/yelp-camp',{
+    useNewUrlParser:true,
+    // useCreateIndex:true, 已弃用
+    // useUnifieldTopology:true 已弃用
+});
+//2、为mongoose.connection创建简写db
+const db = mongoose.connection;
+//3、测试数据库连接，一定要先启动mongodb！！！
+db.on('error',console.error.bind(console,'connection error:'));
+db.once('open',()=>{
+    console.log('Dabase connected');
+});
+
 app.set('view engine','ejs');
-//3.设置 views 文件夹为存放view文件的目录, 即存放模板文件的地方,
-//__dirname 为全局变量,存储当前正在执行的脚本所在的目录
 app.set('views',path.join(__dirname,'views'))
 
 
 app.get('/',(req,res)=>{
-    //4、渲染并发送页面,send里面填views文件夹下的ejs文件，这里可以省略文件类型ejs
     res.render("home")
 })
 
+//5、设置关于campground的request
+app.get('/makecampground',async (req,res)=>{
+    //6、创建Campground的实例
+    const camp = new Campground({title:'My Backyard',
+    description:'Free'
+});
+    //7、向campground collection添加一个对象，类似向表中添加一条record
+    await camp.save();
+    res.send(camp)
+})
 app.listen(3000,()=>{
     console.log('Serving on port 3000')
 })
