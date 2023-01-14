@@ -12,7 +12,7 @@ const CampgroundSchema= new Scheme({
     location:String
 })
 
-//4.创建一个名为Campground的model并添加到CampgroundSchema里
+//4.创建一个名为Campground的model（集合）并添加到CampgroundSchema里
 //mongodb会创建一个名为campground（首字母小写）的collection（表table）
 //并通过模块化暴漏方便其他文件使用
 module.exports = mongoose.model('Campground',CampgroundSchema);
