@@ -2,6 +2,8 @@ const express = require("express");
 const mongoose  = require("mongoose");
 const path = require("path");
 const app = new express();
+//3、引用methodOverride
+const methodOverride = require('method-override');
 
 const Campground = require('./models/campground');
 
@@ -18,40 +20,51 @@ db.once('open',()=>{
 app.set('view engine','ejs');
 app.set('views',path.join(__dirname,'views'))
 
-//5、添加middleware解析req.body
 app.use(express.urlencoded({ extended: true }))
+//4、添加中间件
+app.use(methodOverride('_method'));
 
 app.get('/',(req,res)=>{
     res.render("home")
 })
-//1、创建campgrounds的get route
 app.get('/campgrounds',async (req,res)=>{
     const campgrounds = await Campground.find({});
     res.render('campgrounds/index',{campgrounds})
 })
 
-//3、实现campgrounds/new route
-//要把这route放在campgrounds/show 之前，不然new会被认为是id
 app.get('/campgrounds/new',(req,res)=>{
-    res.render('campgrounds/new',{})
+    res.render('campgrounds/new')
 })
-//4、为campgrounds/new里的form设置相应的post route
-//campgrounds接受表单信息
+
 app.post('/campgrounds',async (req,res)=>{
     const campground = new Campground(req.body.campground);
     await campground.save();
     res.redirect(`/campgrounds/${campground._id}`);
 })
 
-//2、实现campgrounds/show route来显示campground的详细信息
 app.get('/campgrounds/:id',async (req,res)=>{
-    //findById通过_id查询document，
-    //params获取url链接上传递的数据参数
     const campground =await Campground.findById(req.params.id);
     res.render('campgrounds/show',{campground});
 })
+//1、添加edit或update的route
+//2、npm安装method-override
+app.get('/campgrounds/:id/edit',async (req,res)=>{
+    const campground =await Campground.findById(req.params.id);
+    res.render('campgrounds/edit',{campground});
+})
+//5、实现edit或update的put route
+app.put('/campgrounds/:id',async (req,res)=>{
+    const {id}=req.params;
+    const campground= await Campground.findByIdAndUpdate(id,{...req.body.campground});
+    res.redirect(`/campgrounds/${campground._id}`);
+})
 
-
+//6、实现delete的put route
+app.delete('/campgrounds/:id',async (req,res)=>{
+    const {id}=req.params;
+    await Campground.findByIdAndDelete(id);
+    res.redirect("/campgrounds");
+})
 
 app.get('/makecampground',async (req,res)=>{
     const camp = new Campground({title:'My Backyard',
