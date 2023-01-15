@@ -2,7 +2,8 @@ const express = require("express");
 const mongoose  = require("mongoose");
 const path = require("path");
 const app = new express();
-//3、引用methodOverride
+//1、引用ejs-mate
+const ejsMate = require('ejs-mate');
 const methodOverride = require('method-override');
 
 const Campground = require('./models/campground');
@@ -16,7 +17,8 @@ db.on('error',console.error.bind(console,'connection error:'));
 db.once('open',()=>{
     console.log('Dabase connected');
 });
-
+//2、设置engine为ejs-mate
+app.engine('ejs', ejsMate);
 app.set('view engine','ejs');
 app.set('views',path.join(__dirname,'views'))
 
@@ -46,20 +48,17 @@ app.get('/campgrounds/:id',async (req,res)=>{
     const campground =await Campground.findById(req.params.id);
     res.render('campgrounds/show',{campground});
 })
-//1、添加edit或update的route
-//2、npm安装method-override
+
 app.get('/campgrounds/:id/edit',async (req,res)=>{
     const campground =await Campground.findById(req.params.id);
     res.render('campgrounds/edit',{campground});
 })
-//5、实现edit或update的put route
 app.put('/campgrounds/:id',async (req,res)=>{
     const {id}=req.params;
     const campground= await Campground.findByIdAndUpdate(id,{...req.body.campground});
     res.redirect(`/campgrounds/${campground._id}`);
 })
 
-//6、实现delete的put route
 app.delete('/campgrounds/:id',async (req,res)=>{
     const {id}=req.params;
     await Campground.findByIdAndDelete(id);

@@ -25,11 +25,15 @@ const seedDB = async() =>{
     for(let i=0; i<50;i++){
         //array里有1000个city，从中随机抽取
         const rand = Math.floor(Math.random()*1000);
-        
+        const price = Math.floor(Math.random()*20) +10;
         const camp = new Campground({
             location:`${cities[rand].city}, ${cities[rand].state}`,
             //descriptors和places是两个数组
-            title:`${title(descriptors)} ${title(places)}`
+            title:`${title(descriptors)} ${title(places)}`,
+            //从Unsplash的collection里随机产生一张照片
+            image:'https://images.unsplash.com/photo-1507668339897-8a035aa9527d?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1530&q=80',
+            description:'random description',
+            price:price
         })
         await camp.save();
     }

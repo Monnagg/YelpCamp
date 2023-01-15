@@ -7,7 +7,8 @@ const Scheme = mongoose.Schema;
 //如果没有简写需要用new moongoose.Schema()来创建
 const CampgroundSchema= new Scheme({
     title:String,
-    price:String,
+    image:String,
+    price:Number,
     description:String,
     location:String
 })
