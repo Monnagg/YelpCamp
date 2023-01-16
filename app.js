@@ -2,8 +2,11 @@ const express = require("express");
 const mongoose  = require("mongoose");
 const path = require("path");
 const app = new express();
-//1、引用ejs-mate
 const ejsMate = require('ejs-mate');
+//3、引入catchAsync function
+const catchAsync = require('./utils/catchAsync');
+//6、使用自己定义的error
+const ExpressError = require('./utils/ExpressError');
 const methodOverride = require('method-override');
 
 const Campground = require('./models/campground');
@@ -17,13 +20,12 @@ db.on('error',console.error.bind(console,'connection error:'));
 db.once('open',()=>{
     console.log('Dabase connected');
 });
-//2、设置engine为ejs-mate
+
 app.engine('ejs', ejsMate);
 app.set('view engine','ejs');
 app.set('views',path.join(__dirname,'views'))
 
 app.use(express.urlencoded({ extended: true }))
-//4、添加中间件
 app.use(methodOverride('_method'));
 
 app.get('/',(req,res)=>{
@@ -37,40 +39,52 @@ app.get('/campgrounds',async (req,res)=>{
 app.get('/campgrounds/new',(req,res)=>{
     res.render('campgrounds/new')
 })
+//2、调用next捕捉error并将其传递给middlewar 即error handler进行处理
+//4、用catchAsync取代try catch
+app.post('/campgrounds',catchAsync(async (req,res,next)=>{
+        const campground = new Campground(req.body.campground);
+        await campground.save();
+        res.redirect(`/campgrounds/${campground._id}`);
+   
+}))
 
-app.post('/campgrounds',async (req,res)=>{
-    const campground = new Campground(req.body.campground);
-    await campground.save();
-    res.redirect(`/campgrounds/${campground._id}`);
-})
-
-app.get('/campgrounds/:id',async (req,res)=>{
+app.get('/campgrounds/:id',catchAsync(async (req,res)=>{
     const campground =await Campground.findById(req.params.id);
     res.render('campgrounds/show',{campground});
-})
+}))
 
-app.get('/campgrounds/:id/edit',async (req,res)=>{
+app.get('/campgrounds/:id/edit',catchAsync(async (req,res)=>{
     const campground =await Campground.findById(req.params.id);
     res.render('campgrounds/edit',{campground});
-})
-app.put('/campgrounds/:id',async (req,res)=>{
+}))
+app.put('/campgrounds/:id',catchAsync(async (req,res)=>{
     const {id}=req.params;
     const campground= await Campground.findByIdAndUpdate(id,{...req.body.campground});
     res.redirect(`/campgrounds/${campground._id}`);
-})
+}))
 
-app.delete('/campgrounds/:id',async (req,res)=>{
+app.delete('/campgrounds/:id',catchAsync(async (req,res)=>{
     const {id}=req.params;
     await Campground.findByIdAndDelete(id);
     res.redirect("/campgrounds");
-})
+}))
 
-app.get('/makecampground',async (req,res)=>{
+app.get('/makecampground',catchAsync(async (req,res)=>{
     const camp = new Campground({title:'My Backyard',
     description:'Free'
 });
     await camp.save();
     res.send(camp)
+}))
+//5、匹配所有的访问path，如果之前的request都没有被处理
+app.all('*',(req,res,next)=>{
+    next(new ExpressError('Page not Found'),404)
+})
+
+//1、增加error handler
+app.use((err,req,res,next)=>{
+    const {statusCode =500, message='Somethind wrong'} = err;
+    res.status(statusCode).send(message);
 })
 app.listen(3000,()=>{
     console.log('Serving on port 3000')
