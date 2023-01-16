@@ -83,8 +83,9 @@ app.all('*',(req,res,next)=>{
 
 //1、增加error handler
 app.use((err,req,res,next)=>{
-    const {statusCode =500, message='Somethind wrong'} = err;
-    res.status(statusCode).send(message);
+    const {statusCode =500} = err;
+    if (!err.message) err.message ="Oh, something wrong!"
+    res.status(statusCode).render('error',{err});
 })
 app.listen(3000,()=>{
     console.log('Serving on port 3000')
