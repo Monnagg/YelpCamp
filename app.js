@@ -3,9 +3,9 @@ const mongoose  = require("mongoose");
 const path = require("path");
 const app = new express();
 const ejsMate = require('ejs-mate');
-//3、引入catchAsync function
+//引入验证schema
+const {campgroundSchema}=require('./schema.js');
 const catchAsync = require('./utils/catchAsync');
-//6、使用自己定义的error
 const ExpressError = require('./utils/ExpressError');
 const methodOverride = require('method-override');
 
@@ -28,6 +28,19 @@ app.set('views',path.join(__dirname,'views'))
 app.use(express.urlencoded({ extended: true }))
 app.use(methodOverride('_method'));
 
+//用middleware进行统一验证
+const validateCampground = (req,res,next) =>{
+    //验证request里的数据
+    const {error}= campgroundSchema.validate(req.body);
+    if(error){
+        const msg = error.details.map(el =>el.message).join(',')
+        throw new ExpressError(msg,400)
+    }else{
+        next();
+    }
+}
+
+
 app.get('/',(req,res)=>{
     res.render("home")
 })
@@ -39,9 +52,9 @@ app.get('/campgrounds',async (req,res)=>{
 app.get('/campgrounds/new',(req,res)=>{
     res.render('campgrounds/new')
 })
-//2、调用next捕捉error并将其传递给middlewar 即error handler进行处理
-//4、用catchAsync取代try catch
-app.post('/campgrounds',catchAsync(async (req,res,next)=>{
+//把validateCampground function传入route，如果这个验证function执行next（）则继续执行catchAsync（）
+app.post('/campgrounds',validateCampground, catchAsync(async (req,res,next)=>{
+    
         const campground = new Campground(req.body.campground);
         await campground.save();
         res.redirect(`/campgrounds/${campground._id}`);
@@ -57,7 +70,7 @@ app.get('/campgrounds/:id/edit',catchAsync(async (req,res)=>{
     const campground =await Campground.findById(req.params.id);
     res.render('campgrounds/edit',{campground});
 }))
-app.put('/campgrounds/:id',catchAsync(async (req,res)=>{
+app.put('/campgrounds/:id',validateCampground,catchAsync(async (req,res)=>{
     const {id}=req.params;
     const campground= await Campground.findByIdAndUpdate(id,{...req.body.campground});
     res.redirect(`/campgrounds/${campground._id}`);
@@ -76,12 +89,11 @@ app.get('/makecampground',catchAsync(async (req,res)=>{
     await camp.save();
     res.send(camp)
 }))
-//5、匹配所有的访问path，如果之前的request都没有被处理
+
 app.all('*',(req,res,next)=>{
     next(new ExpressError('Page not Found'),404)
 })
 
-//1、增加error handler
 app.use((err,req,res,next)=>{
     const {statusCode =500} = err;
     if (!err.message) err.message ="Oh, something wrong!"

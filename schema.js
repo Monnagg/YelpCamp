@@ -1,0 +1,12 @@
+ const Joi = require('joi');
+ //定义campgroundSchema，这里并不是mongoose Schema，而是在document save之前用来验证的
+ module.exports.campgroundSchema =Joi.object({
+    campground:Joi.object({
+        title:Joi.string().required(),
+        price:Joi.number().required().min(0),
+        image:Joi.string().required(),
+        location:Joi.string().required(),
+        description:Joi.string().required()
+    })
+})
+
