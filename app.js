@@ -3,11 +3,12 @@ const mongoose  = require("mongoose");
 const path = require("path");
 const app = new express();
 const ejsMate = require('ejs-mate');
-//引入验证schema
-const {campgroundSchema}=require('./schema.js');
+const {campgroundSchema, reviewSchema}=require('./schema.js');
 const catchAsync = require('./utils/catchAsync');
 const ExpressError = require('./utils/ExpressError');
 const methodOverride = require('method-override');
+//引入Review model
+const Review =require('./models/review');
 
 const Campground = require('./models/campground');
 
@@ -28,10 +29,19 @@ app.set('views',path.join(__dirname,'views'))
 app.use(express.urlencoded({ extended: true }))
 app.use(methodOverride('_method'));
 
-//用middleware进行统一验证
 const validateCampground = (req,res,next) =>{
-    //验证request里的数据
     const {error}= campgroundSchema.validate(req.body);
+    if(error){
+        const msg = error.details.map(el =>el.message).join(',')
+        throw new ExpressError(msg,400)
+    }else{
+        next();
+    }
+}
+const validateReview =(req,res,next)=>{
+    const{error} =reviewSchema.validate(req.body);
+    console.log(error)
+
     if(error){
         const msg = error.details.map(el =>el.message).join(',')
         throw new ExpressError(msg,400)
@@ -52,7 +62,7 @@ app.get('/campgrounds',async (req,res)=>{
 app.get('/campgrounds/new',(req,res)=>{
     res.render('campgrounds/new')
 })
-//把validateCampground function传入route，如果这个验证function执行next（）则继续执行catchAsync（）
+
 app.post('/campgrounds',validateCampground, catchAsync(async (req,res,next)=>{
     
         const campground = new Campground(req.body.campground);
@@ -82,6 +92,14 @@ app.delete('/campgrounds/:id',catchAsync(async (req,res)=>{
     res.redirect("/campgrounds");
 }))
 
+app.post('/campgrounds/:id/reviews',validateReview, catchAsync(async (req,res)=>{
+   const campground= await Campground.findById(req.params.id);
+   const review = new Review(req.body.review);
+   campground.reviews.push(review);
+   await review.save();
+   await campground.save();
+   res.redirect(`/campgrounds/${campground.id}`);
+}))
 app.get('/makecampground',catchAsync(async (req,res)=>{
     const camp = new Campground({title:'My Backyard',
     description:'Free'
