@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const review = require('./review');
+const Review = require('./review');
 const Scheme = mongoose.Schema;
 
 const CampgroundSchema= new Scheme({
@@ -14,6 +14,15 @@ const CampgroundSchema= new Scheme({
     }
     ]
 })
-
-
+//post middleware,在findOneAndDelete之后删除reviews,这里的parameter doc
+//是删除的document
+CampgroundSchema.post('findOneAndDelete', async function(doc){
+    if(doc){
+        await Review.deleteMany({
+            _id:{
+                $in: doc.reviews
+            }
+        })
+    }
+})
 module.exports = mongoose.model('Campground',CampgroundSchema);
